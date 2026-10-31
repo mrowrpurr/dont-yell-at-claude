@@ -1,12 +1,43 @@
-# I *#$*ing HATE you, Claude
+# 😡 I *#$*ing HATE you, Claude
 
-You're going to swear at Claude. Everyone does. This plugin makes sure Claude
-never actually reads it.
+When people say _"when Claude fucks up, you should recognize that it's your fault"_,  
+those people have not used Anthropic models much _or their expectations are low._
 
-Before your prompt reaches the model, the words you list get replaced
-(`fucking` → `*#$*ing`, or whatever you choose). The model, the transcript,
-and every downstream hook only ever see the cleaned-up version. You still
-get to type it. Claude just doesn't get to hear it.
+As a human, I _truly despise_ working with Claude via a conversational interface.  
+At least with the Claude Code system prompt loaded, which makes Claude a fucking a$$h0le.
+
+## 🙈 `dont-yell-at-claude` (a mod for Claude)
+
+There are a variety of reasons why you might want to censor your swearing:
+
+1. your prompts are visible to your employer
+2. your prompts are visible to Anthropic (_[and they want you to be nice](https://www.anthropic.com/news/2026-usage-policy-update)_)
+3. to improve your own prompting and increase self-awareness
+
+## `FUCK!` --> `$*&%!`
+
+With this mod, your messages are censored **before** the model sees them.
+
+```json
+"replacements": [
+  { "regex": "\\bfuck", "replacement": "$*&%" }
+]
+```
+
+The model, the transcript,
+and every downstream hook only ever see the cleaned-up version. 
+
+### _Yo, calm yourself._
+
+You can also configure a message that shows up when you curse.
+
+```json
+"notifications": {
+  "1": "One curse, chill.",
+  "2-5": "Bunch of cursing, take a chill pill.",
+  "default": "Yo, maybe step away from the computer."
+}
+```
 
 And because yelling at a text box is a habit worth breaking, the plugin can
 answer each outburst with a quiet notice in your client, scaled to how much
@@ -102,3 +133,9 @@ just uninstall
 ```
 
 After editing the plugin itself, run `/reload-plugins` in your session.
+
+## License
+
+This software is available under either the [MIT License](LICENSE)
+or the [BSD Zero Clause License (0BSD)](LICENSE-0BSD),
+at your option.
