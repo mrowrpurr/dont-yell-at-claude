@@ -102,3 +102,9 @@ just uninstall
 ```
 
 After editing the plugin itself, run `/reload-plugins` in your session.
+
+## License
+
+This software is available under either the [MIT License](LICENSE)
+or the [BSD Zero Clause License (0BSD)](LICENSE-0BSD),
+at your option.
