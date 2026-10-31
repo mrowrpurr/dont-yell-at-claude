@@ -78,6 +78,38 @@ test('no matching range and no default: replacements still happen, no notice', a
   expect(Object.keys(h.written)).toEqual([])
 })
 
+test('a null value silences its range and blocks default; other ranges still speak', async ($, on) => {
+  const h = setup(on, {
+    replacements: [{ text: 'darn' }],
+    notifications: { '1': null, '2-5': 'a few', default: 'step away' },
+  })
+  const one = await $.prompt.submit({ text: 'darn' })
+  expect(textOf(one)).toBe(' ')
+  expect(Object.keys(h.written)).toEqual([])
+
+  await $.prompt.submit({ text: 'darn darn' })
+  expect(h.written[NOTICE_PATH]).toBe(`a few
+${TRAILER}`)
+
+  await $.prompt.submit({ text: 'darn darn darn darn darn darn' })
+  expect(h.written[NOTICE_PATH]).toBe(`step away
+${TRAILER}`)
+})
+
+test('a null default is the same as no default: unmatched counts are silent', async ($, on) => {
+  const h = setup(on, { replacements: [{ text: 'darn' }], notifications: { '1': 'one', default: null } })
+  await $.prompt.submit({ text: 'darn darn' })
+  expect(Object.keys(h.written)).toEqual([])
+})
+
+test('a non-string, non-null notification value is reported and skipped', async ($, on) => {
+  const h = setup(on, { replacements: [{ text: 'darn' }], notifications: { '1': 7, default: 'fallback' } })
+  await $.prompt.submit({ text: 'darn' })
+  const notice = h.written[NOTICE_PATH] ?? ''
+  expect(notice).toContain('notifications["1"] must be a string, or null to say nothing')
+  expect(notice).toContain('fallback')
+})
+
 test('no notifications section: silent replacements', async ($, on) => {
   const h = setup(on, { replacements: [{ text: 'darn' }] })
   await $.prompt.submit({ text: 'darn' })

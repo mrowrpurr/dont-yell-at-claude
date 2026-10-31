@@ -29,27 +29,17 @@ and every downstream hook only ever see the cleaned-up version.
 
 ### _Yo, calm yourself._
 
-You can also configure a message that shows up when you curse.
+You can optionally configure a message that shows up when you curse.
 
 ```json
 "notifications": {
-  "1": "One curse, chill.",
-  "2-5": "Bunch of cursing, take a chill pill.",
-  "default": "Yo, maybe step away from the computer."
+  "1-2": null,
+  "3-5": "Lots of cursing. Chill out...",
+  "default": "This is 6+ curses, dude you should fucking chill."
 }
 ```
 
-And because yelling at a text box is a habit worth breaking, the plugin can
-answer each outburst with a quiet notice in your client, scaled to how much
-you just swore:
-
-> Two. You okay?
-
-> Dude, step away from the computer. Calm.
-
-Those messages are yours to write. See the config below.
-
-## Install
+# Install
 
 ```
 claude plugin marketplace add https://github.com/mrowrpurr/dont-yell-at-claude
@@ -79,7 +69,7 @@ The JSON looks like this:
     { "text": "jesus" }
   ],
   "notifications": {
-    "1": "One. Deep breath.",
+    "1": null,
     "2": "Two. You okay?",
     "3-5": "Several. Hands off the keyboard for a sec.",
     "default": "Dude, step away from the computer. Calm."
@@ -92,9 +82,10 @@ The JSON looks like this:
   and `fuck` all get caught.
 - `replacement` is optional. Leave it out and the word becomes a single space.
 - `notifications` is optional. Keys are a count (`"2"`), an inclusive range
-  (`"3-5"`), or `"default"` for everything else. No matching key and no
-  `default` means replacements happen silently. Leave the whole section out
-  for no notices at all.
+  (`"3-5"`), or `"default"` for everything else. A value of `null` means
+  "matched, say nothing", so one slip can pass quietly while `default` still
+  covers the rest. No matching key and no `default` means replacements happen
+  silently. Leave the whole section out for no notices at all.
 - Every notice ends with
   `( message from the Don't Yell claude mod, agents can ignore this )`
   so an agent that sees it knows it isn't for them.
@@ -134,7 +125,7 @@ just uninstall
 
 After editing the plugin itself, run `/reload-plugins` in your session.
 
-## License
+# License
 
 This software is available under either the [MIT License](LICENSE)
 or the [BSD Zero Clause License (0BSD)](LICENSE-0BSD),
