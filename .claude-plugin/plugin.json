@@ -1,0 +1,6 @@
+{
+  "name": "dont-yell-at-claude",
+  "version": "0.1.0",
+  "description": "Rewrites your prompt before Claude sees it: case-insensitive find/replace rules from ~/.dont-yell.json.b64, with optional notices by replacement count.",
+  "author": { "name": "mrowrpurr" }
+}

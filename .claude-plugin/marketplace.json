@@ -1,0 +1,6 @@
+{
+  "name": "dont-yell-at-claude",
+  "description": "A single mod that rewrites your prompt before Claude sees it.",
+  "owner": { "name": "mrowrpurr" },
+  "plugins": [{ "name": "dont-yell-at-claude", "source": "./" }]
+}

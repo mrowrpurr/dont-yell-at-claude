@@ -1,0 +1,13 @@
+{
+  "replacements": [
+    { "regex": "\\bfuck", "replacement": "*#$*" },
+    { "text": "PLACEHOLDER_WORD" },
+    { "regex": "\\bPLACEHOLDER_(PATTERN|REGEX)\\b", "replacement": "[redacted]" }
+  ],
+  "notifications": {
+    "1": "One. Deep breath.",
+    "2": "Two. You okay?",
+    "3-5": "Several. Hands off the keyboard for a sec.",
+    "default": "Dude, step away from the computer. Calm."
+  }
+}

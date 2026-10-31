@@ -1,0 +1,15 @@
+{
+  "modules": ["./register.ts"],
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/notice.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}
