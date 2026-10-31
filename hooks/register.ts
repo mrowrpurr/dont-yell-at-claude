@@ -12,7 +12,7 @@ import type { Register } from 'claude-code'
  *       { "text": "jesus" }                       // replacement defaults to " "
  *     ],
  *     "notifications": {                           // optional
- *       "1": "one replacement",
+ *       "1": null,                                 // matched, but say nothing
  *       "3-5": "three to five",
  *       "default": "anything else"
  *     }
@@ -34,7 +34,7 @@ type ReplacementEntry = { regex?: unknown; text?: unknown; replacement?: unknown
 type Config = { replacements?: unknown; notifications?: unknown }
 
 type Rule = { pattern: RegExp; replacement: string }
-type Range = { from: number; to: number; message: string }
+type Range = { from: number; to: number; message?: string }
 
 export const register: Register = (on) => {
   on('prompt.submit', async ($, e, next) => {
@@ -172,7 +172,9 @@ export function compileRules(replacements: unknown): { rules: Rule[]; errors: st
 /**
  * Picks the notification for `count` replacements: the first key whose
  * inclusive range contains it, else "default", else nothing. Keys are "N",
- * "N-M", or "default"; any other key is an error notice.
+ * "N-M", or "default"; any other key is an error notice. A `null` value
+ * means "matched, say nothing": the range still wins, so `default` does not
+ * fire for it.
  */
 export function pickNotification(notifications: unknown, count: number): { message?: string; errors: string[] } {
   const errors: string[] = []
@@ -184,12 +186,13 @@ export function pickNotification(notifications: unknown, count: number): { messa
   const ranges: Range[] = []
   let fallback: string | undefined
   for (const [key, value] of Object.entries(notifications as Record<string, unknown>)) {
-    if (typeof value !== 'string') {
-      errors.push(`${TAG} notifications["${key}"] must be a string`)
+    if (value !== null && typeof value !== 'string') {
+      errors.push(`${TAG} notifications["${key}"] must be a string, or null to say nothing`)
       continue
     }
+    const message = value === null ? undefined : value
     if (key.trim() === 'default') {
-      fallback = value
+      fallback = message
       continue
     }
     const range = parseRange(key)
@@ -197,7 +200,7 @@ export function pickNotification(notifications: unknown, count: number): { messa
       errors.push(`${TAG} notifications key "${key}" is not a number, an inclusive range like "3-5", or "default"`)
       continue
     }
-    ranges.push({ ...range, message: value })
+    ranges.push({ ...range, message })
   }
 
   const hit = ranges.find((r) => count >= r.from && count <= r.to)

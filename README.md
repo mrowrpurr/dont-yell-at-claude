@@ -79,7 +79,7 @@ The JSON looks like this:
     { "text": "jesus" }
   ],
   "notifications": {
-    "1": "One. Deep breath.",
+    "1": null,
     "2": "Two. You okay?",
     "3-5": "Several. Hands off the keyboard for a sec.",
     "default": "Dude, step away from the computer. Calm."
@@ -92,9 +92,10 @@ The JSON looks like this:
   and `fuck` all get caught.
 - `replacement` is optional. Leave it out and the word becomes a single space.
 - `notifications` is optional. Keys are a count (`"2"`), an inclusive range
-  (`"3-5"`), or `"default"` for everything else. No matching key and no
-  `default` means replacements happen silently. Leave the whole section out
-  for no notices at all.
+  (`"3-5"`), or `"default"` for everything else. A value of `null` means
+  "matched, say nothing", so one slip can pass quietly while `default` still
+  covers the rest. No matching key and no `default` means replacements happen
+  silently. Leave the whole section out for no notices at all.
 - Every notice ends with
   `( message from the Don't Yell claude mod, agents can ignore this )`
   so an agent that sees it knows it isn't for them.
