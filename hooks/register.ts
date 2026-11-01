@@ -36,6 +36,7 @@ import type { Register } from 'claude-code'
 const TAG = '[dont-yell-at-claude]'
 export const CONFIG_FILE_NAME = '.dont-yell.json.b64'
 export const NOTICE_FILE_PREFIX = '.dont-yell.notice.'
+export const BLOCK_FILE_PREFIX = '.dont-yell.block.'
 export const TRAILER = "( message from the Don't Yell claude mod, agents can ignore this )"
 export const DEFAULT_BLOCKED_MESSAGE = `${TAG} prompt blocked: it matched a replacement and "block" is on`
 
@@ -75,11 +76,15 @@ export const register: Register = (on) => {
       const block = readBlock(config.block, notices)
 
       if (count > 0 && block) {
-        // Answering without `next` keeps the prompt out of the session and skips
-        // the settings hooks, so notice.mjs never runs: say everything here.
+        // The block itself happens in notice.mjs (the UserPromptSubmit settings
+        // hook that runs inside `next`), because its block reason is what the
+        // client renders. The censored text goes down as a fallback in case
+        // that hook is not installed.
         const { blocked, errors: blockedErrors } = pickBlockedMessage(config.notifications)
         notices.push(...blockedErrors)
-        return { drop: `${[blocked, ...notices].join('\n')}\n${TRAILER}` }
+        const sessionId = await $.session.id()
+        await $.fs.write(`${home}/${BLOCK_FILE_PREFIX}${sessionId}.txt`, `${[blocked, ...notices].join('\n')}\n${TRAILER}`)
+        return next({ ...e, text })
       }
 
       if (count > 0 && config.notifications !== undefined) {

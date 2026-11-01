@@ -4,6 +4,7 @@ const HOME = 'C:/Users/test'
 const CONFIG_PATH = `${HOME}/.dont-yell.json.b64`
 const SESSION = 'sess-1'
 const NOTICE_PATH = `${HOME}/.dont-yell.notice.${SESSION}.txt`
+const BLOCK_PATH = `${HOME}/.dont-yell.block.${SESSION}.txt`
 const TRAILER = "( message from the Don't Yell claude mod, agents can ignore this )"
 const DEFAULT_BLOCKED_MESSAGE = '[dont-yell-at-claude] prompt blocked: it matched a replacement and "block" is on'
 
@@ -168,19 +169,21 @@ test('slash commands pass through untouched', async ($, on) => {
   expect(Object.keys(h.written)).toEqual([])
 })
 
-test('block: true drops a matching prompt with the "blocked" message and writes no notice file', async ($, on) => {
+test('block: true writes the "blocked" message to the block file and passes the censored text down', async ($, on) => {
   const h = setup(on, {
     replacements: [{ text: 'darn' }],
     block: true,
     notifications: { '1': 'one', default: 'many', blocked: 'Nope. Not sending that.' },
   })
   const result = await $.prompt.submit({ text: 'darn it all' })
-  expect(result.drop).toBe(`Nope. Not sending that.\n${TRAILER}`)
-  expect(result.text).toBe(undefined)
-  expect(Object.keys(h.written)).toEqual([])
+  expect(result.drop).toBe(undefined)
+  expect(textOf(result)).toBe('  it all')
+  expect(h.written[BLOCK_PATH]).toBe(`Nope. Not sending that.
+${TRAILER}`)
+  expect(h.written[NOTICE_PATH]).toBe(undefined)
 })
 
-test('block: true lets a prompt with no match through, with no notice', async ($, on) => {
+test('block: true lets a prompt with no match through, writing nothing', async ($, on) => {
   const h = setup(on, { replacements: [{ text: 'darn' }], block: true, notifications: { blocked: 'Nope.' } })
   const result = await $.prompt.submit({ text: 'hello world' })
   expect(textOf(result)).toBe('hello world')
@@ -189,9 +192,10 @@ test('block: true lets a prompt with no match through, with no notice', async ($
 
 test('block without a "blocked" message uses the built-in reason', async ($, on) => {
   const h = setup(on, { replacements: [{ text: 'darn' }], block: true })
-  const result = await $.prompt.submit({ text: 'darn' })
-  expect(result.drop).toBe(`${DEFAULT_BLOCKED_MESSAGE}\n${TRAILER}`)
-  expect(Object.keys(h.written)).toEqual([])
+  await $.prompt.submit({ text: 'darn' })
+  expect(h.written[BLOCK_PATH]).toBe(`${DEFAULT_BLOCKED_MESSAGE}
+${TRAILER}`)
+  expect(h.written[NOTICE_PATH]).toBe(undefined)
 })
 
 test('block: false and a "blocked" key: replacements and range notices behave as before', async ($, on) => {
@@ -202,22 +206,24 @@ test('block: false and a "blocked" key: replacements and range notices behave as
   })
   const result = await $.prompt.submit({ text: 'darn' })
   expect(textOf(result)).toBe(' ')
-  expect(h.written[NOTICE_PATH]).toBe(`one\n${TRAILER}`)
+  expect(h.written[NOTICE_PATH]).toBe(`one
+${TRAILER}`)
+  expect(h.written[BLOCK_PATH]).toBe(undefined)
 })
 
-test('config errors ride along in the drop reason when blocking', async ($, on) => {
+test('config errors ride along in the block file when blocking', async ($, on) => {
   const h = setup(on, {
     replacements: [{ text: 'darn' }, { regex: '(' }],
     block: true,
     notifications: { blocked: 7 },
   })
-  const result = await $.prompt.submit({ text: 'darn' })
-  const reason = result.drop ?? ''
+  await $.prompt.submit({ text: 'darn' })
+  const reason = h.written[BLOCK_PATH] ?? ''
   expect(reason.startsWith(DEFAULT_BLOCKED_MESSAGE)).toBe(true)
   expect(reason).toContain('replacements[1].regex is not a valid regular expression')
   expect(reason).toContain('notifications["blocked"] must be a string')
   expect(reason.endsWith(TRAILER)).toBe(true)
-  expect(Object.keys(h.written)).toEqual([])
+  expect(h.written[NOTICE_PATH]).toBe(undefined)
 })
 
 test('a non-boolean "block" is reported and treated as false', async ($, on) => {
@@ -227,4 +233,5 @@ test('a non-boolean "block" is reported and treated as false', async ($, on) => 
   const notice = h.written[NOTICE_PATH] ?? ''
   expect(notice).toContain('"block" must be true or false')
   expect(notice).toContain('one')
+  expect(h.written[BLOCK_PATH]).toBe(undefined)
 })
