@@ -39,16 +39,15 @@ You can optionally configure a message that shows up when you curse.
 }
 ```
 
-### _No. Just no._
+### `"block": true`
 
-Or don't send it at all. With `"block": true`, any prompt that matches a
-replacement is blocked before it reaches Claude. The only thing that shows is
-the `blocked` message.
+Blocks any prompt that matches a replacement. The prompt never reaches the
+model. `notifications.blocked` is the message shown.
 
 ```json
 "block": true,
 "notifications": {
-  "blocked": "Nope. That one isn't going to Claude. Try again, calmer."
+  "blocked": "Prompt blocked."
 }
 ```
 
@@ -87,7 +86,7 @@ The JSON looks like this:
     "2": "Two. You okay?",
     "3-5": "Several. Hands off the keyboard for a sec.",
     "default": "Dude, step away from the computer. Calm.",
-    "blocked": "Nope. That one isn't going to Claude. Try again, calmer."
+    "blocked": "Prompt blocked."
   }
 }
 ```
@@ -106,7 +105,7 @@ The JSON looks like this:
   "matched, say nothing", so one slip can pass quietly while `default` still
   covers the rest. No matching key and no `default` means replacements happen
   silently. Leave the whole section out for no notices at all.
-- `notifications.blocked` is the message shown when `block` drops a prompt.
+- `notifications.blocked` is the message shown when `block` blocks a prompt.
   Leave it out and you get a plain
   `[dont-yell-at-claude] prompt blocked: it matched a replacement and "block" is on`.
   It is ignored when `block` is off.

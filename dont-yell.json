@@ -10,6 +10,6 @@
     "2": "Two. You okay?",
     "3-5": "Several. Hands off the keyboard for a sec.",
     "default": "Dude, step away from the computer. Calm.",
-    "blocked": "Nope. That one isn't going to Claude. Try again, calmer."
+    "blocked": "Prompt blocked."
   }
 }
