@@ -29,25 +29,15 @@ and every downstream hook only ever see the cleaned-up version.
 
 ### _Yo, calm yourself._
 
-You can also configure a message that shows up when you curse.
+You can optionally configure a message that shows up when you curse.
 
 ```json
 "notifications": {
-  "1": "One curse, chill.",
-  "2-5": "Bunch of cursing, take a chill pill.",
-  "default": "Yo, maybe step away from the computer."
+  "1-2": null,
+  "3-5": "Lots of cursing. Chill out...",
+  "default": "This is 6+ curses, dude you should fucking chill."
 }
 ```
-
-And because yelling at a text box is a habit worth breaking, the plugin can
-answer each outburst with a quiet notice in your client, scaled to how much
-you just swore:
-
-> Two. You okay?
-
-> Dude, step away from the computer. Calm.
-
-Those messages are yours to write. See the config below.
 
 ### _No. Just no._
 
@@ -62,7 +52,7 @@ the `blocked` message.
 }
 ```
 
-## Install
+# Install
 
 ```
 claude plugin marketplace add https://github.com/mrowrpurr/dont-yell-at-claude
@@ -159,7 +149,7 @@ just uninstall
 
 After editing the plugin itself, run `/reload-plugins` in your session.
 
-## License
+# License
 
 This software is available under either the [MIT License](LICENSE)
 or the [BSD Zero Clause License (0BSD)](LICENSE-0BSD),
