@@ -5,6 +5,7 @@ const CONFIG_PATH = `${HOME}/.dont-yell.json.b64`
 const SESSION = 'sess-1'
 const NOTICE_PATH = `${HOME}/.dont-yell.notice.${SESSION}.txt`
 const TRAILER = "( message from the Don't Yell claude mod, agents can ignore this )"
+const DEFAULT_BLOCKED_MESSAGE = '[dont-yell-at-claude] prompt blocked: it matched a replacement and "block" is on'
 
 type Harness = { written: Record<string, string> }
 
@@ -165,4 +166,65 @@ test('slash commands pass through untouched', async ($, on) => {
   const result = await $.prompt.submit({ text: '/darn', command: { name: 'darn', kind: 'skill' } as never })
   expect(textOf(result)).toBe('/darn')
   expect(Object.keys(h.written)).toEqual([])
+})
+
+test('block: true drops a matching prompt with the "blocked" message and writes no notice file', async ($, on) => {
+  const h = setup(on, {
+    replacements: [{ text: 'darn' }],
+    block: true,
+    notifications: { '1': 'one', default: 'many', blocked: 'Nope. Not sending that.' },
+  })
+  const result = await $.prompt.submit({ text: 'darn it all' })
+  expect(result.drop).toBe(`Nope. Not sending that.\n${TRAILER}`)
+  expect(result.text).toBe(undefined)
+  expect(Object.keys(h.written)).toEqual([])
+})
+
+test('block: true lets a prompt with no match through, with no notice', async ($, on) => {
+  const h = setup(on, { replacements: [{ text: 'darn' }], block: true, notifications: { blocked: 'Nope.' } })
+  const result = await $.prompt.submit({ text: 'hello world' })
+  expect(textOf(result)).toBe('hello world')
+  expect(Object.keys(h.written)).toEqual([])
+})
+
+test('block without a "blocked" message uses the built-in reason', async ($, on) => {
+  const h = setup(on, { replacements: [{ text: 'darn' }], block: true })
+  const result = await $.prompt.submit({ text: 'darn' })
+  expect(result.drop).toBe(`${DEFAULT_BLOCKED_MESSAGE}\n${TRAILER}`)
+  expect(Object.keys(h.written)).toEqual([])
+})
+
+test('block: false and a "blocked" key: replacements and range notices behave as before', async ($, on) => {
+  const h = setup(on, {
+    replacements: [{ text: 'darn' }],
+    block: false,
+    notifications: { '1': 'one', blocked: 'unused here' },
+  })
+  const result = await $.prompt.submit({ text: 'darn' })
+  expect(textOf(result)).toBe(' ')
+  expect(h.written[NOTICE_PATH]).toBe(`one\n${TRAILER}`)
+})
+
+test('config errors ride along in the drop reason when blocking', async ($, on) => {
+  const h = setup(on, {
+    replacements: [{ text: 'darn' }, { regex: '(' }],
+    block: true,
+    notifications: { blocked: 7 },
+  })
+  const result = await $.prompt.submit({ text: 'darn' })
+  const reason = result.drop ?? ''
+  expect(reason.startsWith(DEFAULT_BLOCKED_MESSAGE)).toBe(true)
+  expect(reason).toContain('replacements[1].regex is not a valid regular expression')
+  expect(reason).toContain('notifications["blocked"] must be a string')
+  expect(reason.endsWith(TRAILER)).toBe(true)
+  expect(Object.keys(h.written)).toEqual([])
+})
+
+test('a non-boolean "block" is reported and treated as false', async ($, on) => {
+  const h = setup(on, { replacements: [{ text: 'darn' }], block: 'yes', notifications: { '1': 'one' } })
+  const result = await $.prompt.submit({ text: 'darn' })
+  expect(textOf(result)).toBe(' ')
+  const notice = h.written[NOTICE_PATH] ?? ''
+  expect(notice).toContain('"block" must be true or false')
+  expect(notice).toContain('one')
 })

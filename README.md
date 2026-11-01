@@ -49,6 +49,19 @@ you just swore:
 
 Those messages are yours to write. See the config below.
 
+### _No. Just no._
+
+Or don't send it at all. With `"block": true`, any prompt that matches a
+replacement is dropped before it reaches Claude: no replacements, no model,
+no downstream hooks. The only thing that shows is the `blocked` message.
+
+```json
+"block": true,
+"notifications": {
+  "blocked": "Nope. That one isn't going to Claude. Try again, calmer."
+}
+```
+
 ## Install
 
 ```
@@ -78,11 +91,13 @@ The JSON looks like this:
     { "regex": "\\bfuck", "replacement": "*#$*" },
     { "text": "jesus" }
   ],
+  "block": false,
   "notifications": {
     "1": null,
     "2": "Two. You okay?",
     "3-5": "Several. Hands off the keyboard for a sec.",
-    "default": "Dude, step away from the computer. Calm."
+    "default": "Dude, step away from the computer. Calm.",
+    "blocked": "Nope. That one isn't going to Claude. Try again, calmer."
   }
 }
 ```
@@ -91,11 +106,20 @@ The JSON looks like this:
   literal `text`. Both match everywhere, case-insensitively. `FUCK`, `Fuck`
   and `fuck` all get caught.
 - `replacement` is optional. Leave it out and the word becomes a single space.
+- `block` is optional, default `false`. Set it to `true` and any prompt with
+  at least one match is dropped whole instead of rewritten: Claude never sees
+  it, and neither do any `UserPromptSubmit` hooks. A prompt with no match
+  goes through as typed. The count notices (`"1"`, `"3-5"`, `default`) are
+  not shown for a blocked prompt; only `blocked` is.
 - `notifications` is optional. Keys are a count (`"2"`), an inclusive range
   (`"3-5"`), or `"default"` for everything else. A value of `null` means
   "matched, say nothing", so one slip can pass quietly while `default` still
   covers the rest. No matching key and no `default` means replacements happen
   silently. Leave the whole section out for no notices at all.
+- `notifications.blocked` is the message shown when `block` drops a prompt.
+  Leave it out and you get a plain
+  `[dont-yell-at-claude] prompt blocked: it matched a replacement and "block" is on`.
+  It is ignored when `block` is off.
 - Every notice ends with
   `( message from the Don't Yell claude mod, agents can ignore this )`
   so an agent that sees it knows it isn't for them.

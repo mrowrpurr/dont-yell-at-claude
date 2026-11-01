@@ -11,10 +11,12 @@ import type { Register } from 'claude-code'
  *       { "regex": "\\bfuck", "replacement": "*#$*" },
  *       { "text": "jesus" }                       // replacement defaults to " "
  *     ],
+ *     "block": false,                              // optional; true drops any prompt that matches
  *     "notifications": {                           // optional
  *       "1": null,                                 // matched, but say nothing
  *       "3-5": "three to five",
- *       "default": "anything else"
+ *       "default": "anything else",
+ *       "blocked": "shown when a prompt is dropped"
  *     }
  *   }
  *
@@ -23,15 +25,22 @@ import type { Register } from 'claude-code'
  * wants to tell the user (a notification, a config error) is written to a
  * per-session notice file that the classic UserPromptSubmit hook in
  * `notice.mjs` reads, shows as a systemMessage, and deletes.
+ *
+ * With `block: true`, a prompt with any match never enters: the hook answers
+ * `{ drop }` without calling `next`, so neither the model nor the
+ * UserPromptSubmit settings hooks (including `notice.mjs`) ever see it. The
+ * drop reason is the only thing shown, so `notifications.blocked` and any
+ * config errors go there instead of the notice file.
  */
 
 const TAG = '[dont-yell-at-claude]'
 export const CONFIG_FILE_NAME = '.dont-yell.json.b64'
 export const NOTICE_FILE_PREFIX = '.dont-yell.notice.'
 export const TRAILER = "( message from the Don't Yell claude mod, agents can ignore this )"
+export const DEFAULT_BLOCKED_MESSAGE = `${TAG} prompt blocked: it matched a replacement and "block" is on`
 
 type ReplacementEntry = { regex?: unknown; text?: unknown; replacement?: unknown }
-type Config = { replacements?: unknown; notifications?: unknown }
+type Config = { replacements?: unknown; block?: unknown; notifications?: unknown }
 
 type Rule = { pattern: RegExp; replacement: string }
 type Range = { from: number; to: number; message?: string }
@@ -61,6 +70,16 @@ export const register: Register = (on) => {
           count++
           return rule.replacement
         })
+      }
+
+      const block = readBlock(config.block, notices)
+
+      if (count > 0 && block) {
+        // Answering without `next` keeps the prompt out of the session and skips
+        // the settings hooks, so notice.mjs never runs: say everything here.
+        const { blocked, errors: blockedErrors } = pickBlockedMessage(config.notifications)
+        notices.push(...blockedErrors)
+        return { drop: `${[blocked, ...notices].join('\n')}\n${TRAILER}` }
       }
 
       if (count > 0 && config.notifications !== undefined) {
@@ -121,6 +140,35 @@ async function loadConfig(
   return parsed as Config
 }
 
+/** Reads the optional top-level `block` flag; anything but a boolean is reported and treated as false. */
+export function readBlock(block: unknown, errors: string[]): boolean {
+  if (block === undefined) return false
+  if (typeof block === 'boolean') return block
+  errors.push(`${TAG} "block" must be true or false`)
+  return false
+}
+
+/**
+ * Picks the message shown when a prompt is blocked: `notifications.blocked`
+ * when it is a string, else the built-in default. A missing or null value
+ * means the default; any other type is an error notice.
+ */
+export function pickBlockedMessage(notifications: unknown): { blocked: string; errors: string[] } {
+  const errors: string[] = []
+  if (notifications === undefined || notifications === null) return { blocked: DEFAULT_BLOCKED_MESSAGE, errors }
+  if (typeof notifications !== 'object' || Array.isArray(notifications)) {
+    errors.push(`${TAG} "notifications" must be an object of range keys to messages`)
+    return { blocked: DEFAULT_BLOCKED_MESSAGE, errors }
+  }
+  const value = (notifications as Record<string, unknown>).blocked
+  if (value === undefined || value === null) return { blocked: DEFAULT_BLOCKED_MESSAGE, errors }
+  if (typeof value !== 'string') {
+    errors.push(`${TAG} notifications["blocked"] must be a string`)
+    return { blocked: DEFAULT_BLOCKED_MESSAGE, errors }
+  }
+  return { blocked: value, errors }
+}
+
 /** Turns the `replacements` array into case-insensitive global RegExps; bad entries become error notices. */
 export function compileRules(replacements: unknown): { rules: Rule[]; errors: string[] } {
   const rules: Rule[] = []
@@ -172,9 +220,10 @@ export function compileRules(replacements: unknown): { rules: Rule[]; errors: st
 /**
  * Picks the notification for `count` replacements: the first key whose
  * inclusive range contains it, else "default", else nothing. Keys are "N",
- * "N-M", or "default"; any other key is an error notice. A `null` value
- * means "matched, say nothing": the range still wins, so `default` does not
- * fire for it.
+ * "N-M", or "default"; "blocked" belongs to `pickBlockedMessage` and is
+ * skipped here; any other key is an error notice. A `null` value means
+ * "matched, say nothing": the range still wins, so `default` does not fire
+ * for it.
  */
 export function pickNotification(notifications: unknown, count: number): { message?: string; errors: string[] } {
   const errors: string[] = []
@@ -186,6 +235,7 @@ export function pickNotification(notifications: unknown, count: number): { messa
   const ranges: Range[] = []
   let fallback: string | undefined
   for (const [key, value] of Object.entries(notifications as Record<string, unknown>)) {
+    if (key.trim() === 'blocked') continue
     if (value !== null && typeof value !== 'string') {
       errors.push(`${TAG} notifications["${key}"] must be a string, or null to say nothing`)
       continue
